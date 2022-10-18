@@ -18,13 +18,13 @@ edition = "2018"
 
 [dependencies]
 anyhow = "1"
-byte-slice-cast = "0.3"
+byte-slice-cast = "1.2.1"
 chrono = "0.4"
-clap = "3.0.0-beta.2"
+clap = "4.0.15"
 derive_more = "0.99.5"
-env_logger = "0.7"
+env_logger = "0.9.1"
 gdk = { git = "https://github.com/gtk-rs/gtk-rs" }
-glib = { git = "https://github.com/gtk-rs/gtk-rs" }
+glib = { git = "https://github.com/gtk-rs/gtk-rs-core" }
 gst = { package = "gstreamer", git = "https://gitlab.freedesktop.org/gstreamer/gstreamer-rs" }
 gstreamer-app = { git = "https://gitlab.freedesktop.org/gstreamer/gstreamer-rs" }
 gstreamer-audio = { git = "https://gitlab.freedesktop.org/gstreamer/gstreamer-rs" }
@@ -42,9 +42,9 @@ serde = "1"
 serde_json = "1"
 tokio = { version = "1.1", features = ["full"] }
 tracing = { version = "0.1", default-features = false, features = ["log", "std"] }
-tracing-subscriber = "0.2"
+tracing-subscriber = "0.3.16"
 url = "2.1"
-uuid = "0.8"
+uuid = "1.2.1"
 
 [features]
 default = ["x11"]
