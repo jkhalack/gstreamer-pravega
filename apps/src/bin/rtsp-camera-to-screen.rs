@@ -81,7 +81,7 @@ fn main() {
 
     // Wait until error or EOS
     let bus = pipeline.bus().unwrap();
-    for msg in bus.iter_timed(gst::CLOCK_TIME_NONE) {
+    for msg in bus.iter_timed(gst::GST_CLOCK_TIME_NONE) {
         use gst::MessageView;
 
         match msg.view() {

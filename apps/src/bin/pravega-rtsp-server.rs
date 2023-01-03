@@ -15,7 +15,7 @@
 // using GStreamers rtsp server.
 
 use anyhow::Error;
-use clap::Clap;
+use clap::Parser;
 use derive_more::{Display, Error};
 use glib::subclass::prelude::*;
 use gst::prelude::*;
@@ -144,8 +144,8 @@ mod media_factory {
 
         // Implementation of glib::Object virtual methods
         impl ObjectImpl for Factory {
-            fn constructed(&self, factory: &Self::Type) {
-                self.parent_constructed(factory);
+            fn constructed(&self) {
+                self.parent_constructed();
                 // All media created by this factory are our custom media type. This would
                 // not require a media factory subclass and can also be called on the normal
                 // RTSPMediaFactory.

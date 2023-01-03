@@ -38,7 +38,7 @@ impl Default for Settings {
     fn default() -> Self {
         Settings {
             first_pts: DEFAULT_FIRST_PTS,
-            apply_offset_after_pts: DEFAULT_APPLY_OFFSET_AFTER_PTS_MSECOND * gst::MSECOND,
+            apply_offset_after_pts: DEFAULT_APPLY_OFFSET_AFTER_PTS_MSECOND * gst::ClockTime::MSECOND,
         }
     }
 }
@@ -52,7 +52,7 @@ enum State {
 impl Default for State {
     fn default() -> State {
         State::Started {
-            pts_offset: ClockTime::none(),
+            pts_offset: ClockTime::NONE
         }
     }
 }
@@ -78,7 +78,6 @@ impl RtspSrcSimulator {
     fn sink_chain(
         &self,
         pad: &gst::Pad,
-        _element: &super::RtspSrcSimulator,
         mut buffer: gst::Buffer,
     ) -> Result<gst::FlowSuccess, gst::FlowError> {
         log!(CAT, obj: pad, "Handling buffer {:?}", buffer);
@@ -128,7 +127,7 @@ impl RtspSrcSimulator {
     //
     // See the documentation of gst::Event and gst::EventRef to see what can be done with
     // events, and especially the gst::EventView type for inspecting events.
-    fn sink_event(&self, pad: &gst::Pad, _element: &super::RtspSrcSimulator, event: gst::Event) -> bool {
+    fn sink_event(&self, pad: &gst::Pad, event: gst::Event) -> bool {
         log!(CAT, obj: pad, "Handling event {:?}", event);
         self.srcpad.push_event(event)
     }
@@ -145,7 +144,6 @@ impl RtspSrcSimulator {
     fn sink_query(
         &self,
         pad: &gst::Pad,
-        _element: &super::RtspSrcSimulator,
         query: &mut gst::QueryRef,
     ) -> bool {
         log!(CAT, obj: pad, "Handling query {:?}", query);
@@ -177,7 +175,6 @@ impl RtspSrcSimulator {
     fn src_query(
         &self,
         pad: &gst::Pad,
-        _element: &super::RtspSrcSimulator,
         query: &mut gst::QueryRef,
     ) -> bool {
         log!(CAT, obj: pad, "Handling query {:?}", query);
@@ -210,21 +207,21 @@ impl ObjectSubclass for RtspSrcSimulator {
                 RtspSrcSimulator::catch_panic_pad_function(
                     parent,
                     || Err(gst::FlowError::Error),
-                    |identity, element| identity.sink_chain(pad, element, buffer),
+                    |identity| identity.sink_chain(pad, buffer),
                 )
             })
             .event_function(|pad, parent, event| {
                 RtspSrcSimulator::catch_panic_pad_function(
                     parent,
                     || false,
-                    |identity, element| identity.sink_event(pad, element, event),
+                    |identity| identity.sink_event(pad, event),
                 )
             })
             .query_function(|pad, parent, query| {
                 RtspSrcSimulator::catch_panic_pad_function(
                     parent,
                     || false,
-                    |identity, element| identity.sink_query(pad, element, query),
+                    |identity| identity.sink_query(pad, query),
                 )
             })
             .build();
@@ -235,14 +232,14 @@ impl ObjectSubclass for RtspSrcSimulator {
                 RtspSrcSimulator::catch_panic_pad_function(
                     parent,
                     || false,
-                    |identity, element| identity.src_event(pad, element, event),
+                    |identity| identity.src_event(pad, event),
                 )
             })
             .query_function(|pad, parent, query| {
                 RtspSrcSimulator::catch_panic_pad_function(
                     parent,
                     || false,
-                    |identity, element| identity.src_query(pad, element, query),
+                    |identity| identity.src_query(pad, query),
                 )
             })
             .build();
@@ -261,19 +258,19 @@ impl ObjectSubclass for RtspSrcSimulator {
 
 impl ObjectImpl for RtspSrcSimulator {
     // Called right after construction of a new instance
-    fn constructed(&self, obj: &Self::Type) {
+    fn constructed(&self) {
         // Call the parent class' ::constructed() implementation first
-        self.parent_constructed(obj);
+        self.parent_constructed();
 
         // Here we actually add the pads we created in RtspSrcSimulator::new() to the
         // element so that GStreamer is aware of their existence.
-        obj.add_pad(&self.sinkpad).unwrap();
-        obj.add_pad(&self.srcpad).unwrap();
+        self.add_pad(&self.sinkpad).unwrap();
+        self.add_pad(&self.srcpad).unwrap();
     }
 
     fn properties() -> &'static [glib::ParamSpec] {
         static PROPERTIES: Lazy<Vec<glib::ParamSpec>> = Lazy::new(|| { vec![
-            glib::ParamSpec::new_uint64(
+            glib::ParamSpecUInt::new(
                 PROPERTY_NAME_FIRST_PTS,
                 "First PTS",
                 "The first modified output buffer will have this PTS.",

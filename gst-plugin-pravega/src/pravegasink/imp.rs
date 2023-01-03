@@ -12,10 +12,11 @@
 // Based on:
 //   - https://gitlab.freedesktop.org/gstreamer/gst-plugins-rs/-/tree/master/generic/file/src/filesink
 
+use glib::prelude::*;
 use glib::subclass::prelude::*;
 use gst::prelude::*;
 use gst::subclass::prelude::*;
-use gst::{debug, error, gst_fixme, info, log, trace, memdump};
+use gst::{debug, error, fixme, info, log, trace, memdump};
 use gst_base::subclass::prelude::*;
 
 use std::cmp;
@@ -57,18 +58,18 @@ const PROPERTY_NAME_RETENTION_DAYS: &str = "retention-days";
 const PROPERTY_NAME_RETENTION_BYTES: &str = "retention-bytes";
 const PROPERTY_NAME_RETENTION_MAINTENANCE_INTERVAL_SECONDS: &str = "retention-maintenance-interval-seconds";
 
-#[derive(Debug, Eq, PartialEq, Ord, PartialOrd, Hash, Clone, Copy, glib::GEnum)]
+#[derive(Debug, Eq, PartialEq, Ord, PartialOrd, Hash, Clone, Copy, glib::Enum)]
 #[repr(u32)]
-#[genum(type_name = "GstTimestampMode")]
+#[enum_type(name = "GstTimestampMode")]
 pub enum TimestampMode {
-    #[genum(
+    #[enum_value(
         name = "(DEPRECATED) Pipeline uses the realtime clock which provides nanoseconds \
                 since the Unix epoch 1970-01-01 00:00:00 UTC, not including leap seconds. \
                 This mode is deprecated. Instead, use the timestampcvt element with input-timestamp-mode=start-at-current-time.",
         nick = "realtime-clock"
     )]
     RealtimeClock = 0,
-    #[genum(
+    #[enum_value(
         name = "(DEPRECATED) Input buffer timestamps are nanoseconds \
                 since the NTP epoch 1900-01-01 00:00:00 UTC, not including leap seconds. \
                 Use this for buffers from rtspsrc (ntp-sync=true ntp-time-source=running-time). \
@@ -76,7 +77,7 @@ pub enum TimestampMode {
         nick = "ntp"
     )]
     Ntp = 1,
-    #[genum(
+    #[enum_value(
         name = "Input buffer timestamps are nanoseconds \
                 since 1970-01-01 00:00:00 TAI International Atomic Time, including leap seconds.",
         nick = "tai"
@@ -84,26 +85,26 @@ pub enum TimestampMode {
     Tai = 2,
 }
 
-#[derive(Debug, Eq, PartialEq, Ord, PartialOrd, Hash, Clone, Copy, glib::GEnum)]
+#[derive(Debug, Eq, PartialEq, Ord, PartialOrd, Hash, Clone, Copy, glib::Enum)]
 #[repr(u32)]
-#[genum(type_name = "GstRetentionType")]
+#[enum_type(name = "GstRetentionType")]
 pub enum RetentionType {
-    #[genum(
+    #[enum_value(
         name = "If 'none', no data will be deleted from the stream. ",
         nick = "none"
     )]
     None = 0,
-    #[genum(
+    #[enum_value(
         name = "If 'days', data older than 'retention-days' will be deleted from the stream.",
         nick = "days"
     )]
     Days = 1,
-    #[genum(
+    #[enum_value(
         name = "If 'bytes', the oldest data will be deleted so that the data size does not exceed 'retention-bytes'.",
         nick = "bytes"
     )]
     Bytes = 2,
-    #[genum(
+    #[enum_value(
         name = "If 'daysAndBytes', the oldest data will be deleted if it is older than 'retention-days' or the data size exceeds 'retention-bytes'.",
         nick = "daysAndBytes"
     )]
@@ -363,21 +364,21 @@ impl ObjectSubclass for PravegaSink {
 }
 
 impl ObjectImpl for PravegaSink {
-    fn constructed(&self, obj: &Self::Type) {
-        self.parent_constructed(obj);
-        obj.set_element_flags(gst::ElementFlags::PROVIDE_CLOCK | gst::ElementFlags::REQUIRE_CLOCK);
+    fn constructed(&self) {
+        self.parent_constructed();
+        self.set_element_flags(gst::ElementFlags::PROVIDE_CLOCK | gst::ElementFlags::REQUIRE_CLOCK);
     }
 
     fn properties() -> &'static [glib::ParamSpec] {
         static PROPERTIES: Lazy<Vec<glib::ParamSpec>> = Lazy::new(|| { vec![
-            glib::ParamSpec::new_string(
+            glib::ParamSpecString::new(
                 PROPERTY_NAME_STREAM,
                 "Stream",
                 "scope/stream",
                 None,
                 glib::ParamFlags::WRITABLE,
             ),
-            glib::ParamSpec::new_string(
+            glib::ParamSpecString::new(
                 PROPERTY_NAME_CONTROLLER,
                 "Controller",
                 format!("Pravega controller. \
@@ -387,14 +388,14 @@ impl ObjectImpl for PravegaSink {
                 None,
                 glib::ParamFlags::WRITABLE,
             ),
-            glib::ParamSpec::new_boolean(
+            glib::ParamSpecBoolean::new(
                 PROPERTY_NAME_SEAL,
                 "Seal",
                 "Seal Pravega stream when stopped",
                 false,
                 glib::ParamFlags::WRITABLE,
             ),
-            glib::ParamSpec::new_uint(
+            glib::ParamSpecUInt::new(
                 PROPERTY_NAME_BUFFER_SIZE,
                 "Buffer size",
                 "Size of buffer in number of bytes",
@@ -403,7 +404,7 @@ impl ObjectImpl for PravegaSink {
                 DEFAULT_BUFFER_SIZE.try_into().unwrap(),
                 glib::ParamFlags::WRITABLE,
             ),
-            glib::ParamSpec::new_enum(
+            glib::ParamSpecEnum::new(
                 PROPERTY_NAME_TIMESTAMP_MODE,
                 "Timestamp mode",
                 "Timestamp mode used by the input",
@@ -411,7 +412,7 @@ impl ObjectImpl for PravegaSink {
                 DEFAULT_TIMESTAMP_MODE as i32,
                 glib::ParamFlags::WRITABLE,
             ),
-            glib::ParamSpec::new_double(
+            glib::ParamSpecDouble::new(
                 PROPERTY_NAME_INDEX_MIN_SEC,
                 "Minimum index interval",
                 "The minimum number of seconds between index records",
@@ -420,7 +421,7 @@ impl ObjectImpl for PravegaSink {
                 DEFAULT_INDEX_MIN_SEC.try_into().unwrap(),
                 glib::ParamFlags::WRITABLE,
             ),
-            glib::ParamSpec::new_double(
+            glib::ParamSpecDouble::new(
                 PROPERTY_NAME_INDEX_MAX_SEC,
                 "Maximum index interval",
                 "Force index record if one has not been created in this many seconds, even at delta frames.",
@@ -429,14 +430,14 @@ impl ObjectImpl for PravegaSink {
                 DEFAULT_INDEX_MAX_SEC.try_into().unwrap(),
                 glib::ParamFlags::WRITABLE,
             ),
-            glib::ParamSpec::new_boolean(
+            glib::ParamSpecBoolean::new(
                 PROPERTY_NAME_ALLOW_CREATE_SCOPE,
                 "Allow create scope",
                 "If true, the Pravega scope will be created if needed.",
                 true,
                 glib::ParamFlags::WRITABLE,
             ),
-            glib::ParamSpec::new_string(
+            glib::ParamSpecString::new(
                 PROPERTY_NAME_KEYCLOAK_FILE,
                 "Keycloak file",
                 format!("The filename containing the Keycloak credentials JSON. \
@@ -446,7 +447,7 @@ impl ObjectImpl for PravegaSink {
                 None,
                 glib::ParamFlags::WRITABLE,
             ),
-            glib::ParamSpec::new_enum(
+            glib::ParamSpecEnum::new(
                 PROPERTY_NAME_RETENTION_TYPE,
                 "Retention type",
                 "If 'days', data older than 'retention-days' will be deleted from the stream. If 'bytes', the oldest data will be deleted so that the data size does not exceed 'retention-bytes'. If daysAndBytes, the oldest data will be deleted if it is older than retention-days or the data size exceeds retention-bytes.",
@@ -454,7 +455,7 @@ impl ObjectImpl for PravegaSink {
                 DEFAULT_RETENTION_TYPE as i32,
                 glib::ParamFlags::WRITABLE,
             ),
-            glib::ParamSpec::new_double(
+            glib::ParamSpecDouble::new(
                 PROPERTY_NAME_RETENTION_DAYS,
                 "Retention days",
                 "The number of days that the video stream will be retained.",
@@ -463,7 +464,7 @@ impl ObjectImpl for PravegaSink {
                 0.0,
                 glib::ParamFlags::WRITABLE,
             ),
-            glib::ParamSpec::new_uint64(
+            glib::ParamSpecUInt64::new(
                 PROPERTY_NAME_RETENTION_BYTES,
                 "Retention bytes",
                 "The number of bytes that the video stream will be retained.",
@@ -472,7 +473,7 @@ impl ObjectImpl for PravegaSink {
                 0,
                 glib::ParamFlags::WRITABLE,
             ),
-            glib::ParamSpec::new_uint64(
+            glib::ParamSpecUInt64::new(
                 PROPERTY_NAME_RETENTION_MAINTENANCE_INTERVAL_SECONDS,
                 "Retention maintenance interval seconds",
                 "The oldest data will be deleted from the stream with this interval, according to the retention policy.",
@@ -487,7 +488,7 @@ impl ObjectImpl for PravegaSink {
 
     fn set_property(
         &self,
-        obj: &Self::Type,
+        //obj: &Self::Type,
         _id: usize,
         value: &glib::Value,
         pspec: &glib::ParamSpec,
@@ -495,11 +496,11 @@ impl ObjectImpl for PravegaSink {
         match pspec.name() {
             PROPERTY_NAME_STREAM => {
                 let res = match value.get::<String>() {
-                    Ok(stream) => self.set_stream(&obj, Some(stream)),
+                    Ok(stream) => self.set_stream(&self, Some(stream)),
                     Err(_) => unreachable!("type checked upstream"),
                 };
                 if let Err(err) = res {
-                    error!(CAT, obj: obj, "Failed to set property `{}`: {}", PROPERTY_NAME_STREAM, err);
+                    error!(CAT, obj: self, "Failed to set property `{}`: {}", PROPERTY_NAME_STREAM, err);
                 }
             },
             PROPERTY_NAME_CONTROLLER => {
@@ -510,12 +511,12 @@ impl ObjectImpl for PravegaSink {
                         } else {
                             Some(controller)
                         };
-                        self.set_controller(&obj, controller)
+                        self.set_controller(&self, controller)
                     },
                     Err(_) => unreachable!("type checked upstream"),
                 };
                 if let Err(err) = res {
-                    error!(CAT, obj: obj, "Failed to set property `{}`: {}", PROPERTY_NAME_CONTROLLER, err);
+                    error!(CAT, obj: self, "Failed to set property `{}`: {}", PROPERTY_NAME_CONTROLLER, err);
                 }
             },
             PROPERTY_NAME_SEAL => {
@@ -528,7 +529,7 @@ impl ObjectImpl for PravegaSink {
                     Err(_) => unreachable!("type checked upstream"),
                 };
                 if let Err(err) = res {
-                    error!(CAT, obj: obj, "Failed to set property `{}`: {}", PROPERTY_NAME_SEAL, err);
+                    error!(CAT, obj: self, "Failed to set property `{}`: {}", PROPERTY_NAME_SEAL, err);
                 }
             },
             PROPERTY_NAME_BUFFER_SIZE => {
@@ -541,7 +542,7 @@ impl ObjectImpl for PravegaSink {
                     Err(_) => unreachable!("type checked upstream"),
                 };
                 if let Err(err) = res {
-                    error!(CAT, obj: obj, "Failed to set property `{}`: {}", PROPERTY_NAME_BUFFER_SIZE, err);
+                    error!(CAT, obj: self, "Failed to set property `{}`: {}", PROPERTY_NAME_BUFFER_SIZE, err);
                 }
             },
             PROPERTY_NAME_TIMESTAMP_MODE => {
@@ -554,7 +555,7 @@ impl ObjectImpl for PravegaSink {
                     Err(_) => unreachable!("type checked upstream"),
                 };
                 if let Err(err) = res {
-                    error!(CAT, obj: obj, "Failed to set property `{}`: {}", PROPERTY_NAME_TIMESTAMP_MODE, err);
+                    error!(CAT, obj: self, "Failed to set property `{}`: {}", PROPERTY_NAME_TIMESTAMP_MODE, err);
                 }
             },
             PROPERTY_NAME_INDEX_MIN_SEC => {
@@ -567,7 +568,7 @@ impl ObjectImpl for PravegaSink {
                     Err(_) => unreachable!("type checked upstream"),
                 };
                 if let Err(err) = res {
-                    error!(CAT, obj: obj, "Failed to set property `{}`: {}", PROPERTY_NAME_INDEX_MIN_SEC, err);
+                    error!(CAT, obj: self, "Failed to set property `{}`: {}", PROPERTY_NAME_INDEX_MIN_SEC, err);
                 }
             },
             PROPERTY_NAME_INDEX_MAX_SEC => {
@@ -580,7 +581,7 @@ impl ObjectImpl for PravegaSink {
                     Err(_) => unreachable!("type checked upstream"),
                 };
                 if let Err(err) = res {
-                    error!(CAT, obj: obj, "Failed to set property `{}`: {}", PROPERTY_NAME_INDEX_MAX_SEC, err);
+                    error!(CAT, obj: self, "Failed to set property `{}`: {}", PROPERTY_NAME_INDEX_MAX_SEC, err);
                 }
             },
             PROPERTY_NAME_ALLOW_CREATE_SCOPE => {
@@ -593,7 +594,7 @@ impl ObjectImpl for PravegaSink {
                     Err(_) => unreachable!("type checked upstream"),
                 };
                 if let Err(err) = res {
-                    error!(CAT, obj: obj, "Failed to set property `{}`: {}", PROPERTY_NAME_ALLOW_CREATE_SCOPE, err);
+                    error!(CAT, obj: self, "Failed to set property `{}`: {}", PROPERTY_NAME_ALLOW_CREATE_SCOPE, err);
                 }
             },
             PROPERTY_NAME_KEYCLOAK_FILE => {
@@ -610,7 +611,7 @@ impl ObjectImpl for PravegaSink {
                     Err(_) => unreachable!("type checked upstream"),
                 };
                 if let Err(err) = res {
-                    error!(CAT, obj: obj, "Failed to set property `{}`: {}", PROPERTY_NAME_KEYCLOAK_FILE, err);
+                    error!(CAT, obj: self, "Failed to set property `{}`: {}", PROPERTY_NAME_KEYCLOAK_FILE, err);
                 }
             },
             PROPERTY_NAME_RETENTION_TYPE => {
@@ -623,7 +624,7 @@ impl ObjectImpl for PravegaSink {
                     Err(_) => unreachable!("type checked upstream"),
                 };
                 if let Err(err) = res {
-                    error!(CAT, obj: obj, "Failed to set property `{}`: {}", PROPERTY_NAME_RETENTION_TYPE, err);
+                    error!(CAT, obj: self, "Failed to set property `{}`: {}", PROPERTY_NAME_RETENTION_TYPE, err);
                 }
             },
             PROPERTY_NAME_RETENTION_DAYS => {
@@ -636,7 +637,7 @@ impl ObjectImpl for PravegaSink {
                     Err(_) => unreachable!("type checked upstream"),
                 };
                 if let Err(err) = res {
-                    error!(CAT, obj: obj, "Failed to set property `{}`: {}", PROPERTY_NAME_RETENTION_DAYS, err);
+                    error!(CAT, obj: self, "Failed to set property `{}`: {}", PROPERTY_NAME_RETENTION_DAYS, err);
                 }
             },
             PROPERTY_NAME_RETENTION_BYTES => {
@@ -649,7 +650,7 @@ impl ObjectImpl for PravegaSink {
                     Err(_) => unreachable!("type checked upstream"),
                 };
                 if let Err(err) = res {
-                    error!(CAT, obj: obj, "Failed to set property `{}`: {}", PROPERTY_NAME_RETENTION_BYTES, err);
+                    error!(CAT, obj: self, "Failed to set property `{}`: {}", PROPERTY_NAME_RETENTION_BYTES, err);
                 }
             },
             PROPERTY_NAME_RETENTION_MAINTENANCE_INTERVAL_SECONDS => {
@@ -662,13 +663,15 @@ impl ObjectImpl for PravegaSink {
                     Err(_) => unreachable!("type checked upstream"),
                 };
                 if let Err(err) = res {
-                    error!(CAT, obj: obj, "Failed to set property `{}`: {}", PROPERTY_NAME_RETENTION_MAINTENANCE_INTERVAL_SECONDS, err);
+                    error!(CAT, obj: self, "Failed to set property `{}`: {}", PROPERTY_NAME_RETENTION_MAINTENANCE_INTERVAL_SECONDS, err);
                 }
             },       
         _ => unimplemented!(),
         };
     }
 }
+
+impl GstObjectImpl for PravegaSink {}
 
 impl ElementImpl for PravegaSink {
     fn metadata() -> Option<&'static gst::subclass::ElementMetadata> {
@@ -700,19 +703,19 @@ impl ElementImpl for PravegaSink {
     }
 
     // We always want to use the realtime (Unix) clock, although it is ignored when timestamp-mode=ntp or tai.
-    fn provide_clock(&self, element: &Self::Type) -> Option<gst::Clock> {
+    fn provide_clock(&self) -> Option<gst::Clock> {
         let clock = gst::SystemClock::obtain();
         let clock_type = gst::ClockType::Realtime;
         clock.set_property("clock-type", &clock_type).unwrap();
         let time = clock.time();
-        info!(CAT, obj: element, "provide_clock: Using clock_type={:?}, time={}, ({} ns)", clock_type, time, time.nanoseconds().unwrap());
+        info!(CAT, obj: self, "provide_clock: Using clock_type={:?}, time={}, ({} ns)", clock_type, time, time.nanoseconds().unwrap());
         Some(clock)
     }
 }
 
 impl BaseSinkImpl for PravegaSink {
-    fn start(&self, element: &Self::Type) -> Result<(), gst::ErrorMessage> {
-        debug!(CAT, obj: element, "start: BEGIN");
+    fn start(&self) -> Result<(), gst::ErrorMessage> {
+        debug!(CAT, obj: self, "start: BEGIN");
         let result = (|| {
             let mut state = self.state.lock().unwrap();
             if let State::Started { .. } = *state {
@@ -720,7 +723,7 @@ impl BaseSinkImpl for PravegaSink {
             }
 
             let settings = self.settings.lock().unwrap();
-            info!(CAT, obj: element, "start: index_min_nanos={}, index_max_nanos={}", settings.index_min_nanos, settings.index_max_nanos);
+            info!(CAT, obj: self, "start: index_min_nanos={}, index_max_nanos={}", settings.index_min_nanos, settings.index_max_nanos);
             if !(settings.index_min_nanos <= settings.index_max_nanos) {
                 return Err(gst::error_msg!(gst::ResourceError::Settings,
                     ["{} must be <= {}", PROPERTY_NAME_INDEX_MIN_SEC, PROPERTY_NAME_INDEX_MAX_SEC]))
@@ -735,34 +738,34 @@ impl BaseSinkImpl for PravegaSink {
             let scope = Scope::from(scope_name);
             let stream = Stream::from(stream_name);
             let index_stream = Stream::from(index_stream_name);
-            info!(CAT, obj: element, "start: scope={}, stream={}, index_stream={}", scope, stream, index_stream);
-            info!(CAT, obj: element, "start: timestamp_mode={:?}", settings.timestamp_mode);
+            info!(CAT, obj: self, "start: scope={}, stream={}, index_stream={}", scope, stream, index_stream);
+            info!(CAT, obj: self, "start: timestamp_mode={:?}", settings.timestamp_mode);
 
             let controller = settings.controller.clone().ok_or_else(|| {
                 gst::error_msg!(gst::ResourceError::Settings, ["Controller is not defined"])
             })?;
-            info!(CAT, obj: element, "start: controller={}", controller);
+            info!(CAT, obj: self, "start: controller={}", controller);
             let keycloak_file = settings.keycloak_file.clone();
-            info!(CAT, obj: element, "start: keycloak_file={:?}", keycloak_file);
+            info!(CAT, obj: self, "start: keycloak_file={:?}", keycloak_file);
             let config = utils::create_client_config(controller, keycloak_file).map_err(|error| {
                 gst::error_msg!(gst::ResourceError::Settings, ["Failed to create Pravega client config: {}", error])
             })?;
-            trace!(CAT, obj: element, "start: config={:?}", config);
-            info!(CAT, obj: element, "start: controller_uri={}:{}", config.controller_uri.domain_name(), config.controller_uri.port());
-            info!(CAT, obj: element, "start: is_tls_enabled={}", config.is_tls_enabled);
-            info!(CAT, obj: element, "start: is_auth_enabled={}", config.is_auth_enabled);
+            trace!(CAT, obj: self, "start: config={:?}", config);
+            info!(CAT, obj: self, "start: controller_uri={}:{}", config.controller_uri.domain_name(), config.controller_uri.port());
+            info!(CAT, obj: self, "start: is_tls_enabled={}", config.is_tls_enabled);
+            info!(CAT, obj: self, "start: is_auth_enabled={}", config.is_auth_enabled);
 
             let runtime = Runtime::new().unwrap();
             let client_factory = ClientFactoryAsync::new(config, runtime.handle().to_owned());
             let controller_client = client_factory.controller_client();
 
             // Create scope.
-            info!(CAT, obj: element, "start: allow_create_scope={}", settings.allow_create_scope);
+            info!(CAT, obj: self, "start: allow_create_scope={}", settings.allow_create_scope);
             if settings.allow_create_scope {
                 // This is expected to fail in some environments, even if the scope already exists.
                 // We will log the error and continue.
                 let _ = runtime.block_on(controller_client.create_scope(&scope)).map_err(|error| {
-                    debug!(CAT, obj: element, "Failed to create Pravega scope. This is normal if the scope already exists: {:?}", error);
+                    debug!(CAT, obj: self, "Failed to create Pravega scope. This is normal if the scope already exists: {:?}", error);
                 });
             }
 
@@ -808,7 +811,7 @@ impl BaseSinkImpl for PravegaSink {
             };
             let writer = runtime.block_on(client_factory.create_byte_writer(scoped_stream.clone()));
             let mut seekable_writer = SeekableByteWriter::new(writer, runtime.handle().to_owned());
-            info!(CAT, obj: element, "start: Opened Pravega writer for data");
+            info!(CAT, obj: self, "start: Opened Pravega writer for data");
             seekable_writer.seek_to_tail();
 
             let index_scoped_stream = ScopedStream {
@@ -817,19 +820,19 @@ impl BaseSinkImpl for PravegaSink {
             };
             let index_writer = runtime.block_on(client_factory.create_byte_writer(index_scoped_stream.clone()));
             let mut index_writer = SeekableByteWriter::new(index_writer, runtime.handle().to_owned());
-            info!(CAT, obj: element, "start: Opened Pravega writer for index");
+            info!(CAT, obj: self, "start: Opened Pravega writer for index");
             index_writer.seek_to_tail();
 
-            info!(CAT, obj: element, "start: Buffer size is {}", settings.buffer_size);
+            info!(CAT, obj: self, "start: Buffer size is {}", settings.buffer_size);
             let buf_writer = BufWriter::with_capacity(settings.buffer_size, seekable_writer);
             let counting_writer = CountingWriter::new(buf_writer).unwrap();
 
             let retention_policy = RetentionPolicy::new(settings.retention_type, settings.retention_days, settings.retention_bytes).map_err(|error| {
                 gst::error_msg!(gst::ResourceError::Settings, ["Failed to create retention policy: {}", error])
             })?;
-            info!(CAT, obj: element, "start: retention_policy={:?}", retention_policy);
+            info!(CAT, obj: self, "start: retention_policy={:?}", retention_policy);
 
-            let retention_maintainer = RetentionMaintainer::new(element.clone(), settings.retention_maintenance_interval_seconds, retention_policy, client_factory.clone(),
+            let retention_maintainer = RetentionMaintainer::new(self.clone(), settings.retention_maintenance_interval_seconds, retention_policy, client_factory.clone(),
                 index_scoped_stream, scoped_stream);
             let (retention_thread_stop_tx, retention_thread_stop_rx) = mpsc::channel();
             let retention_thread_handle = retention_maintainer.run(retention_thread_stop_rx);
@@ -846,19 +849,18 @@ impl BaseSinkImpl for PravegaSink {
                 retention_thread_stop_tx,
                 retention_thread_handle,
             };
-            info!(CAT, obj: element, "start: Started");
+            info!(CAT, obj: self, "start: Started");
             Ok(())
         })();
-        debug!(CAT, obj: element, "start: END; result={:?}", result);
+        debug!(CAT, obj: self, "start: END; result={:?}", result);
         result
     }
 
     fn render(
         &self,
-        element: &Self::Type,
         buffer: &gst::Buffer,
     ) -> Result<gst::FlowSuccess, gst::FlowError> {
-        trace!(CAT, obj: element, "render: BEGIN: Rendering {:?}", buffer);
+        trace!(CAT, obj: self, "render: BEGIN: Rendering {:?}", buffer);
         let result = (|| {
             let mut state = self.state.lock().unwrap();
             let (writer,
@@ -885,7 +887,7 @@ impl BaseSinkImpl for PravegaSink {
                     final_offset,
                     buffers_written),
                 State::Stopped => {
-                    gst::element_error!(element, gst::CoreError::Failed, ["Not started yet"]);
+                    gst::element_error!(self, gst::CoreError::Failed, ["Not started yet"]);
                     return Err(gst::FlowError::Error);
                 }
             };
@@ -894,7 +896,7 @@ impl BaseSinkImpl for PravegaSink {
             let duration = buffer.duration();
 
             let map = buffer.map_readable().map_err(|_| {
-                gst::element_error!(element, gst::CoreError::Failed, ["Failed to map buffer"]);
+                gst::element_error!(self, gst::CoreError::Failed, ["Failed to map buffer"]);
                 gst::FlowError::Error
             })?;
             let payload = map.as_ref();
@@ -908,7 +910,7 @@ impl BaseSinkImpl for PravegaSink {
                 TimestampMode::RealtimeClock => {
                     // pts is time between beginning of play and beginning of this buffer.
                     // base_time is the value of the pipeline clock (time since Unix epoch) at the beginning of play.
-                    PravegaTimestamp::from_unix_nanoseconds((element.base_time() + pts).nseconds())
+                    PravegaTimestamp::from_unix_nanoseconds((self.base_time() + pts).nseconds())
                 },
                 TimestampMode::Ntp => {
                     // When receiving from rtspsrc (ntp-sync=true ntp-time-source=running-time),
@@ -929,8 +931,8 @@ impl BaseSinkImpl for PravegaSink {
             // Get the writer offset before writing. This offset will be used in the index.
             let writer_offset = writer.seek(SeekFrom::Current(0)).unwrap();
 
-            log!(CAT, obj: element, "render: timestamp={:?}, pts={}, base_time={}, duration={}, size={}, writer_offset={}",
-                timestamp, pts, element.base_time(), buffer.duration(), buffer.size(), writer_offset);
+            log!(CAT, obj: self, "render: timestamp={:?}, pts={}, base_time={}, duration={}, size={}, writer_offset={}",
+                timestamp, pts, self.base_time(), buffer.duration(), buffer.size(), writer_offset);
 
             // We only want to include key frames (non-delta units) in the index.
             // However, if no key frame has been received in a while, force an index record.
@@ -946,7 +948,7 @@ impl BaseSinkImpl for PravegaSink {
                             if is_delta_unit {
                                 // We are at a delta frame.
                                 if timestamp > last_index_time + index_max_nanos {
-                                    gst_fixme!(CAT, obj: element,
+                                    fixme!(CAT, obj: self,
                                         "render: Forcing index record at delta unit because no key frame has been received for {} sec", interval_sec);
                                     true
                                 } else {
@@ -955,11 +957,11 @@ impl BaseSinkImpl for PravegaSink {
                             } else {
                                 // We are at a key frame.
                                 if timestamp < last_index_time + index_min_nanos {
-                                    debug!(CAT, obj: element,
+                                    debug!(CAT, obj: self,
                                         "render: Skipping creation of index record because an index record was created {} sec ago", interval_sec);
                                     false
                                 } else {
-                                    debug!(CAT, obj: element,
+                                    debug!(CAT, obj: self,
                                         "render: Creating index record at key frame; last index record was created {} sec ago", interval_sec);
                                     true
                                 }
@@ -977,7 +979,7 @@ impl BaseSinkImpl for PravegaSink {
                                     Some(first_valid_time) => {
                                         if timestamp > first_valid_time + index_max_nanos {
                                             let interval_sec = u64_to_i64_saturating_sub(timestamp, first_valid_time) as f64 * 1e-9;
-                                            gst_fixme!(CAT, obj: element,
+                                            fixme!(CAT, obj: self,
                                                 "render: Forcing first index record at delta unit because no key frame has been received for {} sec", interval_sec);
                                             true
                                         } else {
@@ -1004,7 +1006,7 @@ impl BaseSinkImpl for PravegaSink {
             let flush = include_in_index;
             if flush {
                 writer.flush().map_err(|error| {
-                    gst::element_error!(element, gst::CoreError::Failed, ["Failed to flush Pravega data stream: {}", error]);
+                    gst::element_error!(self, gst::CoreError::Failed, ["Failed to flush Pravega data stream: {}", error]);
                     gst::FlowError::Error
                 })?;
             }
@@ -1013,7 +1015,7 @@ impl BaseSinkImpl for PravegaSink {
             // This will wait for all previous index records to be durably persisted.
             if flush {
                 index_writer.flush().map_err(|error| {
-                    gst::element_error!(element, gst::CoreError::Failed, ["Failed to flush Pravega index stream: {}", error]);
+                    gst::element_error!(self, gst::CoreError::Failed, ["Failed to flush Pravega index stream: {}", error]);
                     gst::FlowError::Error
                 })?;
             }
@@ -1028,7 +1030,7 @@ impl BaseSinkImpl for PravegaSink {
                 || *buffers_written == 0
                 || (include_in_index && last_index_time.nanoseconds().is_none());
             if discontinuity {
-                debug!(CAT, obj: element, "render: Recording discontinuity");
+                debug!(CAT, obj: self, "render: Recording discontinuity");
             }
 
             // Write index record.
@@ -1040,13 +1042,13 @@ impl BaseSinkImpl for PravegaSink {
                 let mut index_record_writer = IndexRecordWriter::new();
                 index_record_writer.write(&index_record, index_writer).map_err(|err| {
                     gst::element_error!(
-                        element,
+                        self,
                         gst::ResourceError::Write,
                         ["Failed to write index: {}", err]
                     );
                     gst::FlowError::Error
                 })?;
-                debug!(CAT, obj: element, "render: Wrote index record {:?}", index_record);
+                debug!(CAT, obj: self, "render: Wrote index record {:?}", index_record);
                 *last_index_time = timestamp;
             }
 
@@ -1065,16 +1067,16 @@ impl BaseSinkImpl for PravegaSink {
                     EventWithHeader::new(&payload[pos_to_write..pos_to_write+length_to_write],
                         timestamp, include_in_index, random_access, discontinuity)
                 } else {
-                    debug!(CAT, obj: element, "render: buffer exceeds atomic write size and has been fragmented; writing additional payload of {} bytes", length_to_write);
+                    debug!(CAT, obj: self, "render: buffer exceeds atomic write size and has been fragmented; writing additional payload of {} bytes", length_to_write);
                     // Additional writes must not be indexed and must not be marked as a discontinuity as that would reset the demuxer.
                     EventWithHeader::new(&payload[pos_to_write..pos_to_write+length_to_write],
                         timestamp, false, false, false)
                 };
-                memdump!(CAT, obj: element, "render: writing event={:?}", event);
+                memdump!(CAT, obj: self, "render: writing event={:?}", event);
                 let mut event_writer = EventWriter::new();
                 event_writer.write(&event, writer).map_err(|err| {
                     gst::element_error!(
-                        element,
+                        self,
                         gst::ResourceError::Write,
                         ["Failed to write buffer: {}", err]
                     );
@@ -1086,21 +1088,21 @@ impl BaseSinkImpl for PravegaSink {
 
             // Get the writer offset after writing.
             let writer_offset_end = writer.seek(SeekFrom::Current(0)).unwrap();
-            trace!(CAT, obj: element, "render: wrote {} bytes from offset {} to {}",
+            trace!(CAT, obj: self, "render: wrote {} bytes from offset {} to {}",
                 writer_offset_end - writer_offset, writer_offset, writer_offset_end);
 
             // Flush after writing if the buffer contains the SYNC_AFTER flag. This is normally not used.
             let sync_after = buffer_flags.contains(gst::BufferFlags::SYNC_AFTER);
             if sync_after {
                 writer.flush().map_err(|error| {
-                    gst::element_error!(element, gst::CoreError::Failed, ["Failed to flush Pravega data stream: {}", error]);
+                    gst::element_error!(self, gst::CoreError::Failed, ["Failed to flush Pravega data stream: {}", error]);
                     gst::FlowError::Error
                 })?;
                 index_writer.flush().map_err(|error| {
-                    gst::element_error!(element, gst::CoreError::Failed, ["Failed to flush Pravega index stream: {}", error]);
+                    gst::element_error!(self, gst::CoreError::Failed, ["Failed to flush Pravega index stream: {}", error]);
                     gst::FlowError::Error
                 })?;
-                debug!(CAT, obj: element, "render: Streams flushed because SYNC_AFTER flag was set");
+                debug!(CAT, obj: self, "render: Streams flushed because SYNC_AFTER flag was set");
             }
 
             // Maintain values that may be written to the index on end-of-stream.
@@ -1116,12 +1118,12 @@ impl BaseSinkImpl for PravegaSink {
 
             Ok(gst::FlowSuccess::Ok)
         })();
-        trace!(CAT, obj: element, "render: END: result={:?}", result);
+        trace!(CAT, obj: self, "render: END: result={:?}", result);
         result
     }
 
-    fn stop(&self, element: &Self::Type) -> Result<(), gst::ErrorMessage> {
-        info!(CAT, obj: element, "stop: BEGIN");
+    fn stop(&self) -> Result<(), gst::ErrorMessage> {
+        info!(CAT, obj: self, "stop: BEGIN");
         let result = (|| {
             let seal = {
                 let settings = self.settings.lock().unwrap();
@@ -1175,7 +1177,7 @@ impl BaseSinkImpl for PravegaSink {
                     index_record_writer.write(&index_record, index_writer).map_err(|error| {
                         gst::error_msg!(gst::ResourceError::Write, ["Failed to write Pravega index stream: {}", error])
                     })?;
-                    info!(CAT, obj: element, "stop: Wrote final index record {:?}", index_record);
+                    info!(CAT, obj: self, "stop: Wrote final index record {:?}", index_record);
                 }
             }
 
@@ -1184,7 +1186,7 @@ impl BaseSinkImpl for PravegaSink {
             })?;
 
             if seal {
-                info!(CAT, obj: element, "stop: Sealing streams");
+                info!(CAT, obj: self, "stop: Sealing streams");
                 let writer = writer.get_mut().get_mut().get_mut();
                 runtime.block_on(writer.seal()).map_err(|error| {
                     gst::error_msg!(gst::ResourceError::Write, ["Failed to seal Pravega data stream: {}", error])
@@ -1192,7 +1194,7 @@ impl BaseSinkImpl for PravegaSink {
                 index_writer.seal().map_err(|error| {
                     gst::error_msg!(gst::ResourceError::Write, ["Failed to seal Pravega index stream: {}", error])
                 })?;
-                info!(CAT, obj: element, "stop: Streams sealed");
+                info!(CAT, obj: self, "stop: Streams sealed");
             }
 
             // notify to stop the retention maintainer thread
@@ -1204,7 +1206,7 @@ impl BaseSinkImpl for PravegaSink {
             *state = State::Stopped;
             Ok(())
         })();
-        info!(CAT, obj: element, "stop: END: result={:?}", result);
+        info!(CAT, obj: self, "stop: END: result={:?}", result);
         result
     }
 }

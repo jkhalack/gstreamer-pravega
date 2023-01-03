@@ -12,7 +12,7 @@
 // Based on https://github.com/sdroege/gstreamer-rs/blob/master/tutorials/src/bin/basic-tutorial-5.rs
 
 use anyhow::Error;
-use clap::Clap;
+use clap::Parser;
 use gst::prelude::*;
 use gstreamer_video as gst_video;
 use gst_video::prelude::*;
@@ -143,7 +143,7 @@ fn create_ui(playbin: &gst::Pipeline, video_sink: &gst::Element) -> AppWindow {
         if pipeline
             .seek_simple(
                 gst::SeekFlags::FLUSH | gst::SeekFlags::KEY_UNIT,
-                value * gst::NSECOND,
+                value * gst::ClockTime::NSECOND,
             )
             .is_err()
         {

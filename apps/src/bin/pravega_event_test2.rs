@@ -9,7 +9,7 @@
 //
 
 use anyhow::anyhow;
-use clap::Clap;
+use clap::Parser;
 use log::info;
 
 use uuid::Uuid;

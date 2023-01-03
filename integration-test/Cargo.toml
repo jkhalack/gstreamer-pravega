@@ -21,7 +21,7 @@ anyhow = "1"
 chrono = "0.4"
 clap = "4.0.15"
 ctor = "0.1.20"
-derive_builder = "0.11.2"
+derive_builder = "0.12.0"
 derive-new = "0.5"
 glib = { git = "https://github.com/gtk-rs/gtk-rs-core" }
 gst = { package = "gstreamer", git = "https://gitlab.freedesktop.org/gstreamer/gstreamer-rs" }
@@ -42,7 +42,7 @@ url = "2.1"
 uuid = "1.2.1"
 
 [dev-dependencies]
-rstest = "0.15.0"
+rstest = "0.16.0"
 
 [build-dependencies]
 flate2 = "1.0"

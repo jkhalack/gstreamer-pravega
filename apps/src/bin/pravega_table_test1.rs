@@ -8,7 +8,7 @@
 // http://www.apache.org/licenses/LICENSE-2.0
 //
 
-use clap::Clap;
+use clap::Parser;
 use log::info;
 
 use serde::{Deserialize, Serialize};

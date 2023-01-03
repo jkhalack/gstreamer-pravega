@@ -20,9 +20,9 @@ edition = "2018"
 anyhow = "1"
 byte-slice-cast = "1.2.1"
 chrono = "0.4"
-clap = "4.0.15"
+clap = "4.0.29"
 derive_more = "0.99.5"
-env_logger = "0.9.1"
+env_logger = "0.10.0"
 gdk = { git = "https://github.com/gtk-rs/gtk-rs" }
 glib = { git = "https://github.com/gtk-rs/gtk-rs-core" }
 gst = { package = "gstreamer", git = "https://gitlab.freedesktop.org/gstreamer/gstreamer-rs" }

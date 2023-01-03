@@ -10,7 +10,7 @@
 
 // A CLI that provides tools to manage Pravega streams.
 
-use clap::Clap;
+use clap::Parser;
 use std::time::{Duration, SystemTime};
 
 use pravega_client::client_factory::ClientFactory;

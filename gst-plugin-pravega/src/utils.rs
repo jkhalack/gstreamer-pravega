@@ -17,7 +17,7 @@ pub fn clocktime_to_pravega(t: ClockTime) -> PravegaTimestamp {
 }
 
 pub fn pravega_to_clocktime(t: PravegaTimestamp) -> ClockTime {
-    ClockTime(t.nanoseconds())
+    ClockTime::from_nseconds(t.nanoseconds())
 }
 
 /// Returns the current time as the number of nanoseconds since the NTP epoch, not including leap seconds.
