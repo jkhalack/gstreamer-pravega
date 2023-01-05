@@ -143,7 +143,7 @@ fn create_ui(playbin: &gst::Pipeline, video_sink: &gst::Element) -> AppWindow {
         if pipeline
             .seek_simple(
                 gst::SeekFlags::FLUSH | gst::SeekFlags::KEY_UNIT,
-                value * gst::NSECOND,
+                value * ClockTime::NSECOND,
             )
             .is_err()
         {
